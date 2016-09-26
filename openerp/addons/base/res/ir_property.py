@@ -19,17 +19,52 @@
 #
 ##############################################################################
 
+import logging
 import time
 
 from openerp.osv import osv,fields
 from openerp.tools.misc import attrgetter
 
+_logger = logging.getLogger(__name__)
+
 # -------------------------------------------------------------------------
 # Properties
 # -------------------------------------------------------------------------
 
+TYPE2FIELD = {
+    'char': 'value_text',
+    'float': 'value_float',
+    'boolean': 'value_integer',
+    'integer': 'value_integer',
+    'text': 'value_text',
+    'binary': 'value_binary',
+    'many2one': 'value_reference',
+    'date': 'value_datetime',
+    'datetime': 'value_datetime',
+    'selection': 'value_text',
+}
+
 class ir_property(osv.osv):
     _name = 'ir.property'
+
+    def _compute_value(self, cr, uid, ids, fields, args, context=None):
+        res = {}
+        for prop in self.browse(cr, uid, ids, context=context):
+            try:
+                if not prop.value_reference:
+                    field = TYPE2FIELD.get(prop.type)
+                    res[prop.id] = getattr(prop, field)
+                else:
+                    model = prop.value_reference._name
+                    resource_id = prop.value_reference.id
+                    ref = self.pool.get(model).browse(cr, uid, int(resource_id))
+                    if model == 'account.account':
+                        res[prop.id] = "%s - %s" % (ref.code, ref.name)
+                    else:
+                        res[prop.id] = ref.name
+            except Exception:
+                _logger.warn("Wrong value. either model or record is not exists")
+        return res                    
 
     def _models_field_get(self, cr, uid, field_key, field_value, context=None):
         get = attrgetter(field_key, field_value)
@@ -75,6 +110,8 @@ class ir_property(osv.osv):
                                   'Type',
                                   required=True,
                                   select=1),
+
+        'value' : fields.function(_compute_value, type='text', string='Value'),
     }
 
     _defaults = {

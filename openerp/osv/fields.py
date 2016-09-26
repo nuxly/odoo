@@ -116,6 +116,7 @@ class _column(object):
         self.group_operator = args.get('group_operator', False)
         self.groups = False  # CSV list of ext IDs of groups that can access this field
         self.deprecated = False # Optional deprecation warning
+        self.company_dependent = False
         for a in args:
             setattr(self, a, args[a])
  
@@ -1519,6 +1520,7 @@ class property(function):
         self.field_id = {}
         function.__init__(self, self._fnct_read, False, self._fnct_write,
                           obj_prop, multi='properties', **args)
+        self.company_dependent = True
 
     def restart(self):
         self.field_id = {}
@@ -1549,7 +1551,7 @@ def field_to_dict(model, cr, user, field, context=None):
         res['m2m_join_table'] = table
     for arg in ('string', 'readonly', 'states', 'size', 'group_operator', 'required',
             'change_default', 'translate', 'help', 'select', 'selectable', 'groups',
-            'deprecated', 'digits', 'invisible', 'filters'):
+            'deprecated', 'digits', 'invisible', 'filters', 'company_dependent'):
         if getattr(field, arg, None):
             res[arg] = getattr(field, arg)
 

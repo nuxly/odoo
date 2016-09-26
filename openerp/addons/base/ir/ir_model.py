@@ -270,6 +270,23 @@ class ir_model_fields(osv.osv):
     }
     _order = "name"
 
+    def get_property_action(self, cr, uid, field_name=False, field_model=False, res_id=False, context=None):
+        models = self.pool.get(field_model)
+        if field_name in models._inherit_fields:
+            # Field isn't a real columns of model (not in models._columns) - we need to search the real model (example with product.product)
+            field_model = models._inherit_fields[field_name][0]
+        
+        field = self.search(cr, uid,[('name', '=', field_name), ('model', '=', field_model)], context=context, limit=1)
+        if not field:
+            raise except_orm(_('Warning'), _("Impossible to access to property values."))
+        return {
+            'name': _("Company Properties"),
+            'res_model': 'ir.property',
+            'domain': [ '&', ('fields_id', '=', field[0]), '|', ('res_id', '=', res_id and ("%s,%d" % (field_model, res_id)) or False), ('res_id', '=', False) ],
+            'views': [(self.pool.get('ir.model.data').get_object_reference(cr, uid, 'base', 'ir_property_view_tree')[1], 'tree'), (self.pool.get('ir.model.data').get_object_reference(cr, uid, 'base', 'ir_property_view')[1],'form')],
+            'type': 'ir.actions.act_window',
+        }
+
     def _check_selection(self, cr, uid, selection, context=None):
         try:
             selection_list = eval(selection)

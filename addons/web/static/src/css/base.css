@@ -3395,3 +3395,39 @@ div.ui-widget-overlay {
   background-color: black;
   opacity: 0.6;
 }
+/* Add for property fied */
+.openerp .o_field_property {
+	padding: 0px !important;
+	cursor: pointer;
+	line-height: 10px;
+	float: right;
+	padding-left: 2px;
+	font-family: "entypoRegular" !important;
+	font-size: 20px;
+	font-weight: 200 !important;	
+}
+.openerp .o_field_property .o_property_active {
+	position: absolute;
+	display: inline-block;
+}
+.openerp .o_field_property .o_field_property_m2o {
+	margin: 0;
+}
+.openerp .o_field_property .o_field_property_controls {
+	position: absolute;
+	margin: 0;
+}
+.openerp .o_field_property .o_field_property_textarea {
+	margin: 0;
+}
+.openerp .o_field_property_boolean {
+	top: 0;
+}
+.openerp .o_field_property_image {
+	position: absolute;
+	top: 0;
+	margin: 0px;
+}
+.openerp .o_field_property_selection {
+	position: relative;
+}

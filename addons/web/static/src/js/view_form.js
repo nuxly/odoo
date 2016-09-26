@@ -2113,6 +2113,8 @@ instance.web.form.AbstractField = instance.web.form.FormWidget.extend(instance.w
             this.trigger('changed_value');
             this._check_css_flags();
         });
+		
+		this.$company_dependent = (this.field.company_dependent) ? $('<span>@<span/>').addClass('o_field_property btn btn-link') : $();
     },
     renderElement: function() {
         var self = this;
@@ -2140,12 +2142,33 @@ instance.web.form.AbstractField = instance.web.form.FormWidget.extend(instance.w
         this.field_manager.on("change:display_invalid_fields", this, this._check_css_flags);
         this._check_css_flags();
     },
+    append_company_dependent: function() {
+        if (!this.get("effective_readonly") && !this.$company_dependent_icon) {
+            this.$company_dependent_icon = this.$company_dependent
+                .insertAfter(this.$el)
+                .on('click', _.bind(this.on_property_open, this));
+            }
+    },
+    on_property_open: function(e) {
+        var self = this;
+        e.stopImmediatePropagation();
+		var trans = new instance.web.DataSet(this, 'ir.model.fields');
+        return trans.call_button('get_property_action', [self.name, self.field_manager.model, self.view.datarecord.id, self.field_manager.dataset.context]).done(function(result) {
+            self.do_action(result);
+        });
+    },
     start: function() {
         var tmp = this._super();
         this.on("change:value", this, function() {
             if (! this.no_rerender)
                 this.render_value();
         });
+        if (this.$company_dependent.length) {
+            this.on("change:effective_readonly", this, function() {
+                this.append_company_dependent();
+            });
+            this.append_company_dependent();
+        }		
         this.render_value();
     },
     /**
@@ -2191,6 +2214,8 @@ instance.web.form.AbstractField = instance.web.form.FormWidget.extend(instance.w
         if (this.field.translate) {
             this.$el.find('.oe_field_translate').toggle(this.field_manager.get('actual_mode') !== "create");
         }
+        var show_property = (!this.get('effective_readonly') || this.field_manager.get('actual_mode') !== "create");
+        this.$company_dependent.toggleClass('o_property_active', !!show_property);
         if (!this.disable_utility_classes) {
             if (this.field_manager.get('display_invalid_fields')) {
                 this.$el.toggleClass('oe_form_invalid', !this.is_valid());
@@ -2664,6 +2689,7 @@ instance.web.form.FieldText = instance.web.form.AbstractField.extend(instance.we
                 this.$textarea.attr('disabled', 'disabled');
             }
             this.setupFocus(this.$textarea);
+			this.append_company_dependent();
         } else {
             this.$textarea = undefined;
         }
@@ -2713,6 +2739,14 @@ instance.web.form.FieldText = instance.web.form.AbstractField.extend(instance.we
         var input = !this.get("effective_readonly") && this.$textarea && this.$textarea[0];
         return input ? input.focus() : false;
     },
+    append_company_dependent: function() {
+        if (!this.get("effective_readonly")) {
+            this.$company_dependent_icon = this.$company_dependent
+                .insertAfter(this.$el)
+                .addClass("o_field_property_textarea")
+                .on('click', _.bind(this.on_property_open, this));
+        }
+    },	
     set_dimensions: function (height, width) {
         this._super(height, width);
         if (!this.get("effective_readonly") && this.$textarea) {
@@ -2805,7 +2839,16 @@ instance.web.form.FieldBoolean = instance.web.form.AbstractField.extend({
     focus: function() {
         var input = this.$checkbox && this.$checkbox[0];
         return input ? input.focus() : false;
-    }
+    },
+    append_company_dependent: function() {
+        if (!this.get("effective_readonly")) {
+            this.$company_dependent_icon = this.$company_dependent
+                .removeClass("o_property_active")
+                .appendTo(this.$el)
+                .addClass("o_field_property_boolean")
+                .on('click', _.bind(this.on_property_open, this));
+        }
+    }	
 });
 
 /**
@@ -2837,6 +2880,13 @@ instance.web.form.FieldSelection = instance.web.form.AbstractField.extend(instan
             .unshift([false, ''])
             .value();
     },
+    _check_visibility: function() {
+        this._super();
+        if (this.$company_dependent.length){
+            var toggle = this.get("effective_readonly") || this.get("effective_invisible");
+            this.$company_dependent.toggleClass('o_form_invisible', toggle);
+        }
+    },	
     initialize_content: function() {
         // Flag indicating whether we're in an event chain containing a change
         // event on the select, in order to know what to do on keyup[RETURN]:
@@ -2859,6 +2909,7 @@ instance.web.form.FieldSelection = instance.web.form.AbstractField.extend(instan
                 ischanging = false;
             });
         this.setupFocus($select);
+		this.append_company_dependent();
     },
     commit_value: function () {
         this.store_dom_value();
@@ -2892,6 +2943,14 @@ instance.web.form.FieldSelection = instance.web.form.AbstractField.extend(instan
     focus: function() {
         var input = this.$('select:first')[0];
         return input ? input.focus() : false;
+    },
+    append_company_dependent: function() {
+        if (!this.get("effective_readonly")) {
+            this.$company_dependent_icon = this.$company_dependent
+                .insertAfter(this.$el)
+                .addClass("o_field_property_selection")
+                .on('click', _.bind(this.on_property_open, this));
+        }
     },
     set_dimensions: function (height, width) {
         this._super(height, width);
@@ -3331,6 +3390,7 @@ instance.web.form.FieldMany2One = instance.web.form.AbstractField.extend(instanc
             isSelecting = false;
         });
         this.setupFocus(this.$follow_button);
+		this.append_company_dependent();
     },
     render_value: function(no_recurse) {
         var self = this;
@@ -3439,6 +3499,14 @@ instance.web.form.FieldMany2One = instance.web.form.AbstractField.extend(instanc
         this._super(height, width);
         if (!this.get("effective_readonly") && this.$input)
             this.$input.css('height', height);
+    },
+    append_company_dependent: function() {
+        if (!this.get("effective_readonly")) {
+            this.$company_dependent_icon = this.$company_dependent
+                .appendTo(this.$el)
+                .addClass("o_field_property_m2o")
+                .on('click', _.bind(this.on_property_open, this));
+        }
     }
 });
 
@@ -5260,7 +5328,16 @@ instance.web.form.FieldBinaryImage = instance.web.form.FieldBinary.extend({
                 newValue: value_
             });
         }
-    }
+    },
+    append_company_dependent: function() {
+        if (!this.get("effective_readonly")) {
+            this.$company_dependent_icon = this.$company_dependent
+                .removeClass("o_property_active")
+                .insertAfter(this.$el.find(".o_form_image_controls"))
+                .addClass("o_field_property_image")
+                .on('click', _.bind(this.on_property_open, this));
+        }
+    }	
 });
 
 /**
